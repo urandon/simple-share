@@ -109,7 +109,9 @@ button:hover {
 
 .markdown p,
 .markdown ul,
-.markdown ol {
+.markdown ol,
+.markdown blockquote,
+.markdown hr {
   margin: 0 0 1rem;
 }
 
@@ -117,11 +119,45 @@ button:hover {
   margin: 0.25rem 0;
 }
 
+.markdown blockquote {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--accent);
+  background: rgba(15, 118, 110, 0.08);
+  border-radius: 0 12px 12px 0;
+}
+
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
 .markdown code {
   padding: 0.1rem 0.3rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: rgba(15, 23, 42, 0.04);
+}
+
+.markdown del {
+  opacity: 0.75;
+}
+
+.task-item {
+  list-style: none;
+}
+
+.task-item input {
+  margin: 0 0.55rem 0 0;
+}
+
+.footnote-ref a,
+.footnotes a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.footnotes {
+  font-size: 0.95rem;
 }
 
 .table-wrap {
@@ -315,6 +351,10 @@ details {
     background-repeat: no-repeat, no-repeat;
     background-size: auto, min(82vw, 980px);
     background-attachment: scroll, fixed;
+  }
+
+  .markdown blockquote {
+    background: rgba(45, 212, 191, 0.1);
   }
 
   .markdown table {

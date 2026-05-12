@@ -1,20 +1,130 @@
 import html
 import re
 
+ESCAPE_SENTINEL = "\u0000"
 
-def format_inline(text: str) -> str:
+
+def apply_escapes(text: str) -> str:
+    return re.sub(r"\\(.)", lambda match: f"{ESCAPE_SENTINEL}{ord(match.group(1)):04x}", text)
+
+
+def restore_escapes(text: str) -> str:
+    return re.sub(
+        rf"{ESCAPE_SENTINEL}([0-9a-f]{{4}})",
+        lambda match: chr(int(match.group(1), 16)),
+        text,
+    )
+
+
+def slugify_heading(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return slug or "section"
+
+
+def format_inline(
+    text: str,
+    footnote_numbers: dict[str, int] | None = None,
+    reference_links: dict[str, tuple[str, str | None]] | None = None,
+) -> str:
+    text = apply_escapes(text)
     text = html.escape(text)
+
+    if reference_links is not None:
+        text = re.sub(
+            r"!\[([^\]]*)\]\[([^\]]+)\]",
+            lambda match: render_reference_image(match.group(1), match.group(2), reference_links),
+            text,
+        )
+        text = re.sub(
+            r"\[([^\]]+)\]\[([^\]]+)\]",
+            lambda match: render_reference_link(match.group(1), match.group(2), reference_links),
+            text,
+        )
+
     replacements = [
+        (r'!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^"]*)&quot;)?\)', render_image),
+        (r'\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^"]*)&quot;)?\)', render_link),
+        (r"&lt;(https?://[^\s<>]+)&gt;", r'<a href="\1">\1</a>'),
         (r"`([^`]+)`", r"<code>\1</code>"),
+        (r"~~([^~]+)~~", r"<del>\1</del>"),
         (r"\*\*([^*]+)\*\*", r"<strong>\1</strong>"),
         (r"__([^_]+)__", r"<strong>\1</strong>"),
         (r"\*([^*]+)\*", r"<em>\1</em>"),
         (r"_([^_]+)_", r"<em>\1</em>"),
-        (r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>'),
+        (r"~([^~]+)~", r"<sub>\1</sub>"),
+        (r"\^([^\^\s][^\^]*?)\^", r"<sup>\1</sup>"),
     ]
     for pattern, replacement in replacements:
         text = re.sub(pattern, replacement, text)
-    return text
+    if footnote_numbers is not None:
+        text = re.sub(
+            r"\[\^([^\]]+)\]",
+            lambda match: render_footnote_ref(match.group(1), footnote_numbers),
+            text,
+        )
+    return restore_escapes(text)
+
+
+def render_link(match: re.Match[str]) -> str:
+    label, href, title = match.group(1), match.group(2), match.group(3)
+    title_attr = f' title="{title}"' if title else ""
+    return f'<a href="{href}"{title_attr}>{label}</a>'
+
+
+def render_image(match: re.Match[str]) -> str:
+    alt, src, title = match.group(1), match.group(2), match.group(3)
+    title_attr = f' title="{title}"' if title else ""
+    return f'<img src="{src}" alt="{alt}"{title_attr} />'
+
+
+def render_reference_link(label: str, key: str, reference_links: dict[str, tuple[str, str | None]]) -> str:
+    href, title = reference_links.get(key.lower(), ("", None))
+    if not href:
+        return f"[{label}][{key}]"
+    title_attr = f' title="{title}"' if title else ""
+    return f'<a href="{href}"{title_attr}>{label}</a>'
+
+
+def render_reference_image(alt: str, key: str, reference_links: dict[str, tuple[str, str | None]]) -> str:
+    src, title = reference_links.get(key.lower(), ("", None))
+    if not src:
+        return f"![{alt}][{key}]"
+    title_attr = f' title="{title}"' if title else ""
+    return f'<img src="{src}" alt="{alt}"{title_attr} />'
+
+
+def render_footnote_ref(name: str, footnote_numbers: dict[str, int]) -> str:
+    number = footnote_numbers.setdefault(name, len(footnote_numbers) + 1)
+    escaped_name = html.escape(name)
+    return (
+        f'<sup class="footnote-ref" id="fnref-{escaped_name}">'
+        f'<a href="#fn-{escaped_name}">[{number}]</a></sup>'
+    )
+
+
+def is_table_divider(line: str) -> bool:
+    cells = parse_table_cells(line)
+    return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+
+def parse_table_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def is_horizontal_rule(line: str) -> bool:
+    compact = line.replace(" ", "")
+    return compact in {"---", "***", "___"}
+
+
+def parse_task_item(text: str) -> tuple[bool, str] | None:
+    match = re.fullmatch(r"\[( |x|X)\]\s+(.*)", text)
+    if not match:
+        return None
+    return (match.group(1).lower() == "x", match.group(2))
+
+
+def is_html_block_start(line: str) -> bool:
+    return bool(re.match(r"<([A-Za-z][\w-]*)(\s|>|/>)", line))
 
 
 def render_markdown(text: str) -> str:
@@ -25,27 +135,46 @@ def render_markdown(text: str) -> str:
     list_tag: str | None = None
     table_headers: list[str] = []
     table_rows: list[list[str]] = []
+    blockquote_lines: list[str] = []
     code_lines: list[str] = []
+    footnotes: dict[str, str] = {}
+    footnote_order: dict[str, int] = {}
+    reference_links: dict[str, tuple[str, str | None]] = {}
+    heading_ids: dict[str, int] = {}
     in_code_block = False
+    footnote_pattern = re.compile(r"\[\^([^\]]+)\]:\s*(.*)")
+    reference_pattern = re.compile(r'\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?')
+
+    for raw_line in lines:
+        stripped_line = raw_line.strip()
+        footnote_match = footnote_pattern.fullmatch(stripped_line)
+        if footnote_match:
+            footnotes[footnote_match.group(1)] = footnote_match.group(2)
+            continue
+        reference_match = reference_pattern.fullmatch(stripped_line)
+        if reference_match:
+            reference_links[reference_match.group(1).lower()] = (reference_match.group(2), reference_match.group(3))
 
     def flush_paragraph() -> None:
         if paragraph:
-            parts.append(f"<p>{format_inline(' '.join(paragraph))}</p>")
+            parts.append(f"<p>{format_inline(' '.join(paragraph), footnote_order, reference_links)}</p>")
             paragraph.clear()
 
     def flush_list() -> None:
         nonlocal list_tag
         if list_items and list_tag:
-            items = "".join(f"<li>{format_inline(item)}</li>" for item in list_items)
+            items = "".join(list_items)
             parts.append(f"<{list_tag}>{items}</{list_tag}>")
             list_items.clear()
             list_tag = None
 
     def flush_table() -> None:
         if table_headers:
-            header_html = "".join(f"<th>{format_inline(cell)}</th>" for cell in table_headers)
+            header_html = "".join(
+                f"<th>{format_inline(cell, footnote_order, reference_links)}</th>" for cell in table_headers
+            )
             body_html = "".join(
-                f"<tr>{''.join(f'<td>{format_inline(cell)}</td>' for cell in row)}</tr>"
+                f"<tr>{''.join(f'<td>{format_inline(cell, footnote_order, reference_links)}</td>' for cell in row)}</tr>"
                 for row in table_rows
             )
             parts.append(
@@ -54,12 +183,27 @@ def render_markdown(text: str) -> str:
             table_headers.clear()
             table_rows.clear()
 
+    def flush_blockquote() -> None:
+        if blockquote_lines:
+            rendered = render_markdown("\n".join(blockquote_lines))
+            parts.append(f"<blockquote>{rendered}</blockquote>")
+            blockquote_lines.clear()
+
     def append_list_item(tag: str, item: str) -> None:
         nonlocal list_tag
         if list_tag and list_tag != tag:
             flush_list()
         list_tag = tag
-        list_items.append(item)
+        task = parse_task_item(item)
+        if task:
+            checked, label = task
+            checkbox = " checked" if checked else ""
+            rendered = format_inline(label, footnote_order, reference_links)
+            list_items.append(
+                f'<li class="task-item"><input type="checkbox" disabled{checkbox} /> <span>{rendered}</span></li>'
+            )
+            return
+        list_items.append(f"<li>{format_inline(item, footnote_order, reference_links)}</li>")
 
     def flush_code_block() -> None:
         nonlocal in_code_block
@@ -69,23 +213,26 @@ def render_markdown(text: str) -> str:
             code_lines.clear()
             in_code_block = False
 
-    def parse_table_cells(line: str) -> list[str]:
-        raw_cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
-        return [cell for cell in raw_cells]
-
-    def is_table_divider(line: str) -> bool:
-        cells = parse_table_cells(line)
-        return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
-
     line_index = 0
     while line_index < len(lines):
         line = lines[line_index]
         stripped = line.strip()
 
+        footnote_match = footnote_pattern.fullmatch(stripped)
+        if footnote_match and not in_code_block:
+            line_index += 1
+            continue
+
+        reference_match = reference_pattern.fullmatch(stripped)
+        if reference_match and not in_code_block:
+            line_index += 1
+            continue
+
         if stripped.startswith("```"):
             flush_paragraph()
             flush_list()
             flush_table()
+            flush_blockquote()
             if in_code_block:
                 flush_code_block()
             else:
@@ -102,11 +249,46 @@ def render_markdown(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_table()
+            flush_blockquote()
+            line_index += 1
+            continue
+
+        if stripped.startswith(">"):
+            flush_paragraph()
+            flush_list()
+            flush_table()
+            content = stripped[1:]
+            if content.startswith(" "):
+                content = content[1:]
+            blockquote_lines.append(content)
+            line_index += 1
+            continue
+        flush_blockquote()
+
+        if is_html_block_start(stripped):
+            flush_paragraph()
+            flush_list()
+            flush_table()
+            html_lines = [line]
+            line_index += 1
+            while line_index < len(lines) and lines[line_index].strip():
+                html_lines.append(lines[line_index])
+                line_index += 1
+            parts.append("\n".join(html_lines))
+            continue
+
+        if is_horizontal_rule(stripped):
+            flush_paragraph()
+            flush_list()
+            flush_table()
+            parts.append("<hr />")
             line_index += 1
             continue
 
         heading_level = 0
-        for prefix, level in (("### ", 3), ("## ", 2), ("# ", 1)):
+        heading_text = ""
+        for level in range(6, 0, -1):
+            prefix = "#" * level + " "
             if stripped.startswith(prefix):
                 heading_level = level
                 heading_text = stripped[len(prefix):]
@@ -116,7 +298,12 @@ def render_markdown(text: str) -> str:
             flush_paragraph()
             flush_list()
             flush_table()
-            parts.append(f"<h{heading_level}>{format_inline(heading_text)}</h{heading_level}>")
+            slug = slugify_heading(heading_text)
+            count = heading_ids.get(slug, 0)
+            heading_ids[slug] = count + 1
+            heading_id = slug if count == 0 else f"{slug}-{count + 1}"
+            rendered_heading = format_inline(heading_text, footnote_order, reference_links)
+            parts.append(f'<h{heading_level} id="{heading_id}">{rendered_heading}</h{heading_level}>')
             line_index += 1
             continue
 
@@ -143,6 +330,14 @@ def render_markdown(text: str) -> str:
             line_index += 1
             continue
 
+        task_item = parse_task_item(stripped)
+        if task_item:
+            flush_paragraph()
+            flush_table()
+            append_list_item("ul", stripped)
+            line_index += 1
+            continue
+
         ordered_match = re.match(r"\d+\.\s+(.*)", stripped)
         if ordered_match:
             flush_paragraph()
@@ -157,7 +352,18 @@ def render_markdown(text: str) -> str:
     flush_paragraph()
     flush_list()
     flush_table()
+    flush_blockquote()
     if in_code_block:
         flush_code_block()
+
+    if footnote_order:
+        note_items = []
+        for name, number in sorted(footnote_order.items(), key=lambda item: item[1]):
+            content = format_inline(footnotes.get(name, ""), footnote_order, reference_links)
+            escaped_name = html.escape(name)
+            note_items.append(
+                f'<li id="fn-{escaped_name}">{content} <a href="#fnref-{escaped_name}">↩</a></li>'
+            )
+        parts.append(f'<section class="footnotes"><hr /><ol>{"".join(note_items)}</ol></section>')
 
     return "\n".join(parts)
