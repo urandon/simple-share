@@ -22,6 +22,7 @@ def render_markdown(text: str) -> str:
     parts: list[str] = []
     paragraph: list[str] = []
     list_items: list[str] = []
+    list_tag: str | None = None
     code_lines: list[str] = []
     in_code_block = False
 
@@ -31,10 +32,19 @@ def render_markdown(text: str) -> str:
             paragraph.clear()
 
     def flush_list() -> None:
-        if list_items:
+        nonlocal list_tag
+        if list_items and list_tag:
             items = "".join(f"<li>{format_inline(item)}</li>" for item in list_items)
-            parts.append(f"<ul>{items}</ul>")
+            parts.append(f"<{list_tag}>{items}</{list_tag}>")
             list_items.clear()
+            list_tag = None
+
+    def append_list_item(tag: str, item: str) -> None:
+        nonlocal list_tag
+        if list_tag and list_tag != tag:
+            flush_list()
+        list_tag = tag
+        list_items.append(item)
 
     def flush_code_block() -> None:
         nonlocal in_code_block
@@ -80,7 +90,13 @@ def render_markdown(text: str) -> str:
 
         if stripped.startswith("- ") or stripped.startswith("* "):
             flush_paragraph()
-            list_items.append(stripped[2:])
+            append_list_item("ul", stripped[2:])
+            continue
+
+        ordered_match = re.match(r"\d+\.\s+(.*)", stripped)
+        if ordered_match:
+            flush_paragraph()
+            append_list_item("ol", ordered_match.group(1))
             continue
 
         paragraph.append(stripped)

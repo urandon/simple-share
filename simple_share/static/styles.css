@@ -84,7 +84,8 @@ button:hover {
 }
 
 .markdown p,
-.markdown ul {
+.markdown ul,
+.markdown ol {
   margin: 0 0 1rem;
 }
 
