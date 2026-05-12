@@ -16,7 +16,11 @@ body {
   font-family: Inter, system-ui, sans-serif;
   margin: 0;
   line-height: 1.5;
-  background: linear-gradient(180deg, #eef4ff 0%, #f7f8fb 45%, #edf2f7 100%);
+  background-color: var(--page-bg);
+  background-image: url("/static/panda-bg.svg"), linear-gradient(180deg, #eef4ff 0%, #f7f8fb 45%, #edf2f7 100%);
+  background-position: right -8rem top 3rem, center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: min(44vw, 520px), cover;
   color: var(--text-color);
 }
 
@@ -24,6 +28,8 @@ main {
   max-width: 1080px;
   margin: 0 auto;
   padding: 2rem 1rem 3rem;
+  position: relative;
+  z-index: 1;
 }
 
 pre,
@@ -229,6 +235,13 @@ details {
   margin-top: 1rem;
 }
 
+@media (max-width: 900px) {
+  body {
+    background-position: center top 1rem, center;
+    background-size: min(72vw, 420px), cover;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --text-color: #e5edf7;
@@ -241,7 +254,11 @@ details {
   }
 
   body {
-    background: linear-gradient(180deg, #08111f 0%, #0f172a 55%, #162033 100%);
+    background-color: var(--page-bg);
+    background-image: url("/static/panda-bg.svg"), linear-gradient(180deg, #08111f 0%, #0f172a 55%, #162033 100%);
+    background-position: right -8rem top 3rem, center;
+    background-repeat: no-repeat, no-repeat;
+    background-size: min(44vw, 520px), cover;
   }
 
   .text-panel,

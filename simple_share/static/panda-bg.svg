@@ -1,0 +1,23 @@
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="1200" fill="transparent"/>
+  <g opacity="0.16">
+    <polygon points="333,296 412,181 548,206 497,358" fill="#111827"/>
+    <polygon points="867,296 788,181 652,206 703,358" fill="#0f172a"/>
+    <polygon points="600,267 748,339 779,518 600,594 421,518 452,339" fill="#F8FAFC"/>
+    <polygon points="452,339 421,518 281,489 251,360 333,296" fill="#E5E7EB"/>
+    <polygon points="748,339 779,518 919,489 949,360 867,296" fill="#CBD5E1"/>
+    <polygon points="421,518 600,594 529,737 380,706 339,584" fill="#111827"/>
+    <polygon points="779,518 600,594 671,737 820,706 861,584" fill="#1F2937"/>
+    <polygon points="529,737 600,594 671,737 600,860" fill="#F8FAFC"/>
+    <polygon points="486,421 546,452 534,524 456,539 417,486" fill="#111827"/>
+    <polygon points="714,421 654,452 666,524 744,539 783,486" fill="#111827"/>
+    <polygon points="600,503 652,560 624,642 576,642 548,560" fill="#111827"/>
+    <polygon points="548,560 576,642 476,675 417,611 456,539" fill="#0f172a"/>
+    <polygon points="652,560 624,642 724,675 783,611 744,539" fill="#1f2937"/>
+    <polygon points="333,296 251,360 219,275 303,213" fill="#1F2937"/>
+    <polygon points="867,296 949,360 981,275 897,213" fill="#111827"/>
+    <polygon points="380,706 529,737 487,864 355,822" fill="#CBD5E1"/>
+    <polygon points="820,706 671,737 713,864 845,822" fill="#E2E8F0"/>
+    <polygon points="600,860 487,864 528,979 600,1019 672,979 713,864" fill="#F8FAFC"/>
+  </g>
+</svg>
