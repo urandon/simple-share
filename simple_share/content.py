@@ -131,7 +131,10 @@ def describe_path_kind(path: Path) -> str:
     return f"{prefix}text"
 
 
-def iter_directory_items(content_dir: Path, relative_dir: PurePosixPath = PurePosixPath()) -> list[ContentItem]:
+def iter_directory_items(
+    content_dir: Path,
+    relative_dir: PurePosixPath = PurePosixPath(),
+) -> list[ContentItem]:
     directory_path = resolve_content_path(content_dir, relative_dir)
     if not directory_path.is_dir():
         raise NotADirectoryError(directory_path)
@@ -155,9 +158,14 @@ def iter_directory_items(content_dir: Path, relative_dir: PurePosixPath = PurePo
             continue
         children.append(child)
 
-    for child in sorted(children, key=lambda path: (0 if path.is_dir() else 1, path.name.lower(), path.name)):
+    def sort_key(path: Path) -> tuple[int, str, str]:
+        return (0 if path.is_dir() else 1, path.name.lower(), path.name)
+
+    for child in sorted(children, key=sort_key):
         child_relative = relative_dir / child.name
-        href = build_browse_href(child_relative) if child.is_dir() else build_view_href(child_relative)
+        href = (
+            build_browse_href(child_relative) if child.is_dir() else build_view_href(child_relative)
+        )
         items.append(
             ContentItem(
                 source_path=child,

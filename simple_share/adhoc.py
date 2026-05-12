@@ -29,7 +29,10 @@ def build_adhoc_handler(config: AdHocConfig) -> type[BaseHTTPRequestHandler]:
                     return
 
                 if route.startswith("/static/"):
-                    self.respond_file(STATIC_DIR / route.removeprefix("/static/"), cache_static=True)
+                    self.respond_file(
+                        STATIC_DIR / route.removeprefix("/static/"),
+                        cache_static=True,
+                    )
                     return
 
                 if route.startswith("/image-"):

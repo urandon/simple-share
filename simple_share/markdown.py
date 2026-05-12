@@ -1,5 +1,6 @@
 import html
 import re
+from collections.abc import Callable
 
 ESCAPE_SENTINEL = "\u0000"
 
@@ -21,10 +22,19 @@ def slugify_heading(text: str) -> str:
     return slug or "section"
 
 
+def restore_inline_html_tags(text: str) -> str:
+    return re.sub(
+        r"&lt;(/?[A-Za-z][^<>]*?)&gt;",
+        lambda match: html.unescape(match.group(0)),
+        text,
+    )
+
+
 def format_inline(
     text: str,
     footnote_numbers: dict[str, int] | None = None,
     reference_links: dict[str, tuple[str, str | None]] | None = None,
+    url_resolver: Callable[[str], str] | None = None,
 ) -> str:
     text = apply_escapes(text)
     text = html.escape(text)
@@ -32,12 +42,66 @@ def format_inline(
     if reference_links is not None:
         text = re.sub(
             r"!\[([^\]]*)\]\[([^\]]+)\]",
-            lambda match: render_reference_image(match.group(1), match.group(2), reference_links),
+            lambda match: render_reference_image(
+                match.group(1),
+                match.group(2),
+                reference_links,
+                url_resolver,
+            ),
+            text,
+        )
+        text = re.sub(
+            r"!\[([^\]]*)\]\[\]",
+            lambda match: render_reference_image(
+                match.group(1),
+                match.group(1),
+                reference_links,
+                url_resolver,
+                collapsed=True,
+            ),
+            text,
+        )
+        text = re.sub(
+            r"!\[([^\]]*)\](?![\[(])",
+            lambda match: render_reference_image(
+                match.group(1),
+                match.group(1),
+                reference_links,
+                url_resolver,
+                shortcut=True,
+            ),
             text,
         )
         text = re.sub(
             r"\[([^\]]+)\]\[([^\]]+)\]",
-            lambda match: render_reference_link(match.group(1), match.group(2), reference_links),
+            lambda match: render_reference_link(
+                match.group(1),
+                match.group(2),
+                reference_links,
+                url_resolver,
+            ),
+            text,
+        )
+        text = re.sub(
+            r"\[([^\]]+)\]\[\]",
+            lambda match: render_reference_link(
+                match.group(1),
+                match.group(1),
+                reference_links,
+                url_resolver,
+                collapsed=True,
+            ),
+            text,
+        )
+        text = re.sub(
+            r"\[([^\]]+)\](?![\[(^])",
+            lambda match: render_reference_link(
+                match.group(1),
+                match.group(1),
+                reference_links,
+                url_resolver,
+                shortcut=True,
+            ),
             text,
         )
 
@@ -55,6 +119,9 @@ def format_inline(
         (r"\^([^\^\s][^\^]*?)\^", r"<sup>\1</sup>"),
     ]
     for pattern, replacement in replacements:
+        if callable(replacement):
+            text = re.sub(pattern, lambda match: replacement(match, url_resolver), text)
+            continue
         text = re.sub(pattern, replacement, text)
     if footnote_numbers is not None:
         text = re.sub(
@@ -62,33 +129,64 @@ def format_inline(
             lambda match: render_footnote_ref(match.group(1), footnote_numbers),
             text,
         )
+    text = restore_inline_html_tags(text)
     return restore_escapes(text)
 
 
-def render_link(match: re.Match[str]) -> str:
-    label, href, title = match.group(1), match.group(2), match.group(3)
+def resolve_url(url: str, url_resolver: Callable[[str], str] | None) -> str:
+    if url_resolver is None:
+        return url
+    return url_resolver(url)
+
+
+def render_link(match: re.Match[str], url_resolver: Callable[[str], str] | None = None) -> str:
+    label, href, title = match.group(1), resolve_url(match.group(2), url_resolver), match.group(3)
     title_attr = f' title="{title}"' if title else ""
     return f'<a href="{href}"{title_attr}>{label}</a>'
 
 
-def render_image(match: re.Match[str]) -> str:
-    alt, src, title = match.group(1), match.group(2), match.group(3)
+def render_image(match: re.Match[str], url_resolver: Callable[[str], str] | None = None) -> str:
+    alt, src, title = match.group(1), resolve_url(match.group(2), url_resolver), match.group(3)
     title_attr = f' title="{title}"' if title else ""
     return f'<img src="{src}" alt="{alt}"{title_attr} />'
 
 
-def render_reference_link(label: str, key: str, reference_links: dict[str, tuple[str, str | None]]) -> str:
+def render_reference_link(
+    label: str,
+    key: str,
+    reference_links: dict[str, tuple[str, str | None]],
+    url_resolver: Callable[[str], str] | None = None,
+    collapsed: bool = False,
+    shortcut: bool = False,
+) -> str:
     href, title = reference_links.get(key.lower(), ("", None))
     if not href:
+        if shortcut:
+            return f"[{label}]"
+        if collapsed:
+            return f"[{label}][]"
         return f"[{label}][{key}]"
+    href = resolve_url(href, url_resolver)
     title_attr = f' title="{title}"' if title else ""
     return f'<a href="{href}"{title_attr}>{label}</a>'
 
 
-def render_reference_image(alt: str, key: str, reference_links: dict[str, tuple[str, str | None]]) -> str:
+def render_reference_image(
+    alt: str,
+    key: str,
+    reference_links: dict[str, tuple[str, str | None]],
+    url_resolver: Callable[[str], str] | None = None,
+    collapsed: bool = False,
+    shortcut: bool = False,
+) -> str:
     src, title = reference_links.get(key.lower(), ("", None))
     if not src:
+        if shortcut:
+            return f"![{alt}]"
+        if collapsed:
+            return f"![{alt}][]"
         return f"![{alt}][{key}]"
+    src = resolve_url(src, url_resolver)
     title_attr = f' title="{title}"' if title else ""
     return f'<img src="{src}" alt="{alt}"{title_attr} />'
 
@@ -127,7 +225,7 @@ def is_html_block_start(line: str) -> bool:
     return bool(re.match(r"<([A-Za-z][\w-]*)(\s|>|/>)", line))
 
 
-def render_markdown(text: str) -> str:
+def render_markdown(text: str, url_resolver: Callable[[str], str] | None = None) -> str:
     lines = text.splitlines()
     parts: list[str] = []
     paragraph: list[str] = []
@@ -142,6 +240,7 @@ def render_markdown(text: str) -> str:
     reference_links: dict[str, tuple[str, str | None]] = {}
     heading_ids: dict[str, int] = {}
     in_code_block = False
+    code_language = ""
     footnote_pattern = re.compile(r"\[\^([^\]]+)\]:\s*(.*)")
     reference_pattern = re.compile(r'\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?')
 
@@ -153,11 +252,20 @@ def render_markdown(text: str) -> str:
             continue
         reference_match = reference_pattern.fullmatch(stripped_line)
         if reference_match:
-            reference_links[reference_match.group(1).lower()] = (reference_match.group(2), reference_match.group(3))
+            reference_links[reference_match.group(1).lower()] = (
+                reference_match.group(2),
+                reference_match.group(3),
+            )
 
     def flush_paragraph() -> None:
         if paragraph:
-            parts.append(f"<p>{format_inline(' '.join(paragraph), footnote_order, reference_links)}</p>")
+            rendered = format_inline(
+                " ".join(paragraph),
+                footnote_order,
+                reference_links,
+                url_resolver,
+            )
+            parts.append(f"<p>{rendered}</p>")
             paragraph.clear()
 
     def flush_list() -> None:
@@ -171,21 +279,28 @@ def render_markdown(text: str) -> str:
     def flush_table() -> None:
         if table_headers:
             header_html = "".join(
-                f"<th>{format_inline(cell, footnote_order, reference_links)}</th>" for cell in table_headers
+                f"<th>{format_inline(cell, footnote_order, reference_links, url_resolver)}</th>"
+                for cell in table_headers
             )
             body_html = "".join(
-                f"<tr>{''.join(f'<td>{format_inline(cell, footnote_order, reference_links)}</td>' for cell in row)}</tr>"
+                "<tr>"
+                + "".join(
+                    f"<td>{format_inline(cell, footnote_order, reference_links, url_resolver)}</td>"
+                    for cell in row
+                )
+                + "</tr>"
                 for row in table_rows
             )
             parts.append(
-                f"<div class=\"table-wrap\"><table><thead><tr>{header_html}</tr></thead><tbody>{body_html}</tbody></table></div>"
+                '<div class="table-wrap"><table><thead><tr>'
+                f"{header_html}</tr></thead><tbody>{body_html}</tbody></table></div>"
             )
             table_headers.clear()
             table_rows.clear()
 
     def flush_blockquote() -> None:
         if blockquote_lines:
-            rendered = render_markdown("\n".join(blockquote_lines))
+            rendered = render_markdown("\n".join(blockquote_lines), url_resolver=url_resolver)
             parts.append(f"<blockquote>{rendered}</blockquote>")
             blockquote_lines.clear()
 
@@ -198,19 +313,26 @@ def render_markdown(text: str) -> str:
         if task:
             checked, label = task
             checkbox = " checked" if checked else ""
-            rendered = format_inline(label, footnote_order, reference_links)
+            rendered = format_inline(label, footnote_order, reference_links, url_resolver)
             list_items.append(
-                f'<li class="task-item"><input type="checkbox" disabled{checkbox} /> <span>{rendered}</span></li>'
+                '<li class="task-item">'
+                f'<input type="checkbox" disabled{checkbox} /> '
+                f"<span>{rendered}</span></li>"
             )
             return
-        list_items.append(f"<li>{format_inline(item, footnote_order, reference_links)}</li>")
+        rendered = format_inline(item, footnote_order, reference_links, url_resolver)
+        list_items.append(f"<li>{rendered}</li>")
 
     def flush_code_block() -> None:
-        nonlocal in_code_block
+        nonlocal in_code_block, code_language
         if in_code_block:
             code = html.escape("\n".join(code_lines))
-            parts.append(f"<pre><code>{code}</code></pre>")
+            language_attr = ""
+            if code_language:
+                language_attr = f' class="language-{code_language}" data-language="{code_language}"'
+            parts.append(f"<pre><code{language_attr}>{code}</code></pre>")
             code_lines.clear()
+            code_language = ""
             in_code_block = False
 
     line_index = 0
@@ -237,6 +359,7 @@ def render_markdown(text: str) -> str:
                 flush_code_block()
             else:
                 in_code_block = True
+                code_language = stripped.removeprefix("```").strip().lower()
             line_index += 1
             continue
 
@@ -291,7 +414,7 @@ def render_markdown(text: str) -> str:
             prefix = "#" * level + " "
             if stripped.startswith(prefix):
                 heading_level = level
-                heading_text = stripped[len(prefix):]
+                heading_text = stripped[len(prefix) :]
                 break
 
         if heading_level:
@@ -302,8 +425,15 @@ def render_markdown(text: str) -> str:
             count = heading_ids.get(slug, 0)
             heading_ids[slug] = count + 1
             heading_id = slug if count == 0 else f"{slug}-{count + 1}"
-            rendered_heading = format_inline(heading_text, footnote_order, reference_links)
-            parts.append(f'<h{heading_level} id="{heading_id}">{rendered_heading}</h{heading_level}>')
+            rendered_heading = format_inline(
+                heading_text,
+                footnote_order,
+                reference_links,
+                url_resolver,
+            )
+            parts.append(
+                f'<h{heading_level} id="{heading_id}">{rendered_heading}</h{heading_level}>'
+            )
             line_index += 1
             continue
 
@@ -359,7 +489,12 @@ def render_markdown(text: str) -> str:
     if footnote_order:
         note_items = []
         for name, number in sorted(footnote_order.items(), key=lambda item: item[1]):
-            content = format_inline(footnotes.get(name, ""), footnote_order, reference_links)
+            content = format_inline(
+                footnotes.get(name, ""),
+                footnote_order,
+                reference_links,
+                url_resolver,
+            )
             escaped_name = html.escape(name)
             note_items.append(
                 f'<li id="fn-{escaped_name}">{content} <a href="#fnref-{escaped_name}">↩</a></li>'

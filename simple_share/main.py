@@ -19,6 +19,8 @@ from simple_share.content import (
 from simple_share.page import build_page
 from simple_share.site import build_content_handler
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 
 def main() -> int:
     args = parse_args()
@@ -31,7 +33,7 @@ def main() -> int:
         content_dir = resolve_content_dir(args.content_dir)
         ensure_content_dir(content_dir)
         title = os.environ.get("TITLE", "shared content")
-        handler = build_content_handler(content_dir, title, Path(__file__).resolve().parent / "static")
+        handler = build_content_handler(content_dir, title, STATIC_DIR)
         app = App(port=port, request_handler_class=handler)
         signal.signal(signal.SIGINT, app.cleanup)
         signal.signal(signal.SIGTERM, app.cleanup)
@@ -65,7 +67,8 @@ def main() -> int:
         title = os.environ.get("TITLE", default_title(payload))
         images = stage_images(payload.image_paths, output_dir)
         html_file = output_dir / "index.html"
-        html_file.write_text(build_page(title, payload.content, args.markdown, images), encoding="utf-8")
+        html = build_page(title, payload.content, args.markdown, images)
+        html_file.write_text(html, encoding="utf-8")
 
         app = App(port=port, serve_dir=output_dir)
         signal.signal(signal.SIGINT, app.cleanup)

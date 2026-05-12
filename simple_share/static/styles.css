@@ -29,7 +29,7 @@ body::before {
   background-position: center center;
   background-repeat: no-repeat;
   background-size: min(72vw, 880px);
-  opacity: 0.12;
+  opacity: 0.18;
   pointer-events: none;
   z-index: 0;
 }
@@ -57,6 +57,41 @@ pre {
   background: var(--panel);
 }
 
+.markdown pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.markdown pre code[data-language] {
+  color: inherit;
+}
+
+.markdown pre .token.comment {
+  color: var(--muted);
+}
+
+.markdown pre .token.keyword {
+  color: #7c3aed;
+  font-weight: 600;
+}
+
+.markdown pre .token.property {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.markdown pre .token.string {
+  color: #b45309;
+}
+
+.markdown pre .token.literal,
+.markdown pre .token.builtin {
+  color: #2563eb;
+}
+
 .text-panel,
 .image-panel {
   background-color: rgba(255, 255, 255, 0.72);
@@ -68,11 +103,9 @@ pre {
 }
 
 .text-panel {
-  background-image: linear-gradient(rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.58)), url("/static/panda-bg.svg");
-  background-position: 0 0, center center;
-  background-repeat: no-repeat, no-repeat;
-  background-size: auto, min(78vw, 920px);
-  background-attachment: scroll, fixed;
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(4px);
 }
 
 .image-panel {
@@ -140,6 +173,20 @@ button:hover {
 
 .markdown del {
   opacity: 0.75;
+}
+
+.markdown mark {
+  background: color-mix(in srgb, var(--accent) 18%, white 82%);
+  color: inherit;
+  padding: 0.08rem 0.3rem;
+  border-radius: 0.4rem;
+}
+
+.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
 }
 
 .task-item {
@@ -346,15 +393,34 @@ details {
   }
 
   .text-panel {
-    background-image: linear-gradient(rgba(15, 23, 42, 0.54), rgba(15, 23, 42, 0.54)), url("/static/panda-bg.svg");
-    background-position: 0 0, center center;
-    background-repeat: no-repeat, no-repeat;
-    background-size: auto, min(82vw, 980px);
-    background-attachment: scroll, fixed;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(4px);
+  }
+
+  body::before {
+    background-size: min(82vw, 980px);
+    opacity: 0.28;
   }
 
   .markdown blockquote {
     background: rgba(45, 212, 191, 0.1);
+  }
+
+  .markdown mark {
+    background: color-mix(in srgb, var(--accent) 26%, #0f172a 74%);
+  }
+
+  .markdown pre .token.keyword {
+    color: #c084fc;
+  }
+
+  .markdown pre .token.string {
+    color: #fbbf24;
+  }
+
+  .markdown pre .token.literal,
+  .markdown pre .token.builtin {
+    color: #7dd3fc;
   }
 
   .markdown table {

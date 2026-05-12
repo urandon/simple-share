@@ -17,7 +17,11 @@ from simple_share.models import ImageAsset
 from simple_share.page import build_index_page, build_page
 
 
-def build_content_handler(content_dir: Path, title: str, static_dir: Path) -> type[BaseHTTPRequestHandler]:
+def build_content_handler(
+    content_dir: Path,
+    title: str,
+    static_dir: Path,
+) -> type[BaseHTTPRequestHandler]:
     class ContentHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             route = unquote(urlsplit(self.path).path)
@@ -44,7 +48,8 @@ def build_content_handler(content_dir: Path, title: str, static_dir: Path) -> ty
                     return
 
                 if route.startswith("/browse/"):
-                    relative_path = normalize_relative_path(route.removeprefix("/browse/").rstrip("/"))
+                    browse_path = route.removeprefix("/browse/").rstrip("/")
+                    relative_path = normalize_relative_path(browse_path)
                     self.respond_html(self.build_directory_page(relative_path))
                     return
 
@@ -59,7 +64,10 @@ def build_content_handler(content_dir: Path, title: str, static_dir: Path) -> ty
             except NotADirectoryError:
                 self.send_error(HTTPStatus.NOT_FOUND, "Not a directory")
             except IsADirectoryError:
-                self.send_error(HTTPStatus.NOT_FOUND, "Use the directory route for folders")
+                self.send_error(
+                    HTTPStatus.NOT_FOUND,
+                    "Use the directory route for folders",
+                )
             except ValueError:
                 self.send_error(HTTPStatus.BAD_REQUEST, "Unsupported path")
 
@@ -102,6 +110,8 @@ def build_content_handler(content_dir: Path, title: str, static_dir: Path) -> ty
                 markdown=is_markdown_file(source_path),
                 images=[],
                 back_href=back_href,
+                markdown_base_dir=directory_relative,
+                markdown_content_dir=content_dir,
             )
 
         def respond_html(self, body: str) -> None:

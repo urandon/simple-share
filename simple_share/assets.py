@@ -1,7 +1,6 @@
 import shutil
 from pathlib import Path
 
-
 PACKAGE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = PACKAGE_DIR / "static"
 
