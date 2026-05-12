@@ -8,4 +8,4 @@ if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]]; then
   PYTHON_BIN="$SCRIPT_DIR/.venv/bin/python"
 fi
 
-exec "$PYTHON_BIN" "$SCRIPT_DIR/share-text.py" "$@"
+exec "$PYTHON_BIN" "$SCRIPT_DIR/simple-share.py" "$@"

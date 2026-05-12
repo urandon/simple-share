@@ -2,7 +2,7 @@ import argparse
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="share-text")
+    parser = argparse.ArgumentParser(prog="simple-share")
     parser.add_argument("text", nargs="*", help="Text to publish")
     parser.add_argument("-m", "--markdown", action="store_true", help="Render markdown")
     parser.add_argument("-f", "--file", action="append", help="Read content from file; repeat for multiple files")

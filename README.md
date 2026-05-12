@@ -1,4 +1,4 @@
-# cloud-bz-gz
+# simple-share
 
 Tiny reusable script to publish text, Markdown, screenshots, or a browsable content directory through either `localhost` or `cloudflared`.
 
@@ -21,16 +21,16 @@ Tiny reusable script to publish text, Markdown, screenshots, or a browsable cont
 ## Usage
 
 ```bash
-chmod +x ./share-text.sh
+chmod +x ./simple-share.sh
 ```
 
-`share-text.sh` is a thin wrapper around `share-text.py`.
+`simple-share.sh` is a thin wrapper around `simple-share.py`.
 If a repo-local `.venv` exists, both entrypoints prefer it automatically.
 
 Start directory mode:
 
 ```bash
-./share-text.sh
+./simple-share.sh
 ```
 
 By default this serves the repo-local `./content` directory as an index page.
@@ -38,7 +38,7 @@ By default this serves the repo-local `./content` directory as an index page.
 Start local-only mode for faster layout work:
 
 ```bash
-./share-text.sh --local-only
+./simple-share.sh --local-only
 ```
 
 This keeps the site on `http://127.0.0.1:$PORT` and does not start `cloudflared`.
@@ -46,67 +46,67 @@ This keeps the site on `http://127.0.0.1:$PORT` and does not start `cloudflared`
 Pass plain text directly:
 
 ```bash
-./share-text.sh "hello from special network"
+./simple-share.sh "hello from special network"
 ```
 
 Pass Markdown directly:
 
 ```bash
-./share-text.sh -m "# Weekly Report"
+./simple-share.sh -m "# Weekly Report"
 ```
 
 Pass a file:
 
 ```bash
-./share-text.sh -f ./notes.txt
+./simple-share.sh -f ./notes.txt
 ```
 
 Pass a Markdown file:
 
 ```bash
-./share-text.sh -m -f ./report.md
+./simple-share.sh -m -f ./report.md
 ```
 
 Pass a screenshot:
 
 ```bash
-./share-text.sh -f ~/Desktop/screenshot.png
+./simple-share.sh -f ~/Desktop/screenshot.png
 ```
 
 Pass multiple screenshots:
 
 ```bash
-./share-text.sh -f ~/Desktop/step-1.png -f ~/Desktop/step-2.png
+./simple-share.sh -f ~/Desktop/step-1.png -f ~/Desktop/step-2.png
 ```
 
 Pass stdin:
 
 ```bash
-pbpaste | ./share-text.sh
+pbpaste | ./simple-share.sh
 ```
 
 Pass Markdown via stdin:
 
 ```bash
-cat ./report.md | ./share-text.sh -m
+cat ./report.md | ./simple-share.sh -m
 ```
 
 Custom port:
 
 ```bash
-PORT=8899 ./share-text.sh "temporary text"
+PORT=8899 ./simple-share.sh "temporary text"
 ```
 
 Custom page title:
 
 ```bash
-TITLE="one-time share" ./share-text.sh "temporary text"
+TITLE="one-time share" ./simple-share.sh "temporary text"
 ```
 
 Custom content directory:
 
 ```bash
-./share-text.sh --content-dir ~/shared-drop
+./simple-share.sh --content-dir ~/shared-drop
 ```
 
 ## Markdown mode
@@ -130,7 +130,7 @@ If you pass image files (`png`, `jpg`, `jpeg`, `gif`, `webp`, etc.) with `-f`, t
 
 ## Directory mode
 
-If you run `./share-text.sh` with no arguments, the tool serves an index page from `./content`.
+If you run `./simple-share.sh` with no arguments, the tool serves an index page from `./content`.
 
 - drop `.md`, screenshots, and text files into `./content`
 - open the shared root URL to see the index
@@ -155,8 +155,8 @@ If you add `--local-only`, the tool serves the same content on localhost without
 
 ## Layout
 
-- `share-text.sh`: shell wrapper
-- `share-text.py`: Python entrypoint
+- `simple-share.sh`: shell wrapper
+- `simple-share.py`: Python entrypoint
 - `share_text/cli.py`: argument parsing
 - `share_text/content.py`: input loading and image staging
 - `share_text/site.py`: content-directory site generation
