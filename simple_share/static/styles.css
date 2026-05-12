@@ -16,12 +16,22 @@ body {
   font-family: Inter, system-ui, sans-serif;
   margin: 0;
   line-height: 1.5;
-  background-color: var(--page-bg);
-  background-image: url("/static/panda-bg.svg"), linear-gradient(180deg, #eef4ff 0%, #f7f8fb 45%, #edf2f7 100%);
-  background-position: right -8rem top 3rem, center;
-  background-repeat: no-repeat, no-repeat;
-  background-size: min(44vw, 520px), cover;
+  background: linear-gradient(180deg, #eef4ff 0%, #f7f8fb 45%, #edf2f7 100%);
   color: var(--text-color);
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("/static/panda-bg.svg");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: min(72vw, 880px);
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
 }
 
 main {
@@ -49,12 +59,20 @@ pre {
 
 .text-panel,
 .image-panel {
-  background: rgba(255, 255, 255, 0.82);
+  background-color: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1rem;
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(12px);
+}
+
+.text-panel {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.58)), url("/static/panda-bg.svg");
+  background-position: 0 0, center center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: auto, min(78vw, 920px);
+  background-attachment: scroll, fixed;
 }
 
 .image-panel {
@@ -104,6 +122,29 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: rgba(15, 23, 42, 0.04);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 1rem;
+}
+
+.markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.markdown th,
+.markdown td {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown th {
+  background: rgba(15, 118, 110, 0.1);
 }
 
 .image-grid {
@@ -170,7 +211,7 @@ button:hover {
 }
 
 .index-panel {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1rem;
@@ -236,9 +277,8 @@ details {
 }
 
 @media (max-width: 900px) {
-  body {
-    background-position: center top 1rem, center;
-    background-size: min(72vw, 420px), cover;
+  body::before {
+    background-size: min(88vw, 760px);
   }
 }
 
@@ -254,18 +294,35 @@ details {
   }
 
   body {
-    background-color: var(--page-bg);
-    background-image: url("/static/panda-bg.svg"), linear-gradient(180deg, #08111f 0%, #0f172a 55%, #162033 100%);
-    background-position: right -8rem top 3rem, center;
-    background-repeat: no-repeat, no-repeat;
-    background-size: min(44vw, 520px), cover;
+    background: linear-gradient(180deg, #08111f 0%, #0f172a 55%, #162033 100%);
+  }
+
+  body::before {
+    background-size: min(76vw, 920px);
+    opacity: 0.22;
   }
 
   .text-panel,
   .image-panel,
   .index-panel {
-    background: rgba(15, 23, 42, 0.92);
+    background: rgba(15, 23, 42, 0.78);
     box-shadow: 0 18px 42px rgba(2, 6, 23, 0.44);
+  }
+
+  .text-panel {
+    background-image: linear-gradient(rgba(15, 23, 42, 0.54), rgba(15, 23, 42, 0.54)), url("/static/panda-bg.svg");
+    background-position: 0 0, center center;
+    background-repeat: no-repeat, no-repeat;
+    background-size: auto, min(82vw, 980px);
+    background-attachment: scroll, fixed;
+  }
+
+  .markdown table {
+    background: rgba(15, 23, 42, 0.34);
+  }
+
+  .markdown th {
+    background: rgba(45, 212, 191, 0.12);
   }
 
   .image-card a {

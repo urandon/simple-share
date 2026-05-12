@@ -3,6 +3,7 @@ import signal
 import tempfile
 from pathlib import Path
 
+from simple_share.adhoc import AdHocConfig, build_adhoc_handler
 from simple_share.app import App
 from simple_share.assets import publish_static_assets
 from simple_share.cli import parse_args
@@ -31,6 +32,24 @@ def main() -> int:
         ensure_content_dir(content_dir)
         title = os.environ.get("TITLE", "shared content")
         handler = build_content_handler(content_dir, title, Path(__file__).resolve().parent / "static")
+        app = App(port=port, request_handler_class=handler)
+        signal.signal(signal.SIGINT, app.cleanup)
+        signal.signal(signal.SIGTERM, app.cleanup)
+        app.start_server()
+        if args.local_only:
+            return app.serve_local()
+        return app.start_tunnel()
+
+    if args.reload:
+        title = os.environ.get("TITLE")
+        handler = build_adhoc_handler(
+            AdHocConfig(
+                file_paths=args.file,
+                text_args=args.text,
+                markdown=args.markdown,
+                title=title,
+            )
+        )
         app = App(port=port, request_handler_class=handler)
         signal.signal(signal.SIGINT, app.cleanup)
         signal.signal(signal.SIGTERM, app.cleanup)
