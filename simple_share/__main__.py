@@ -1,4 +1,4 @@
-from share_text.main import main
+from simple_share.main import main
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markupsafe import Markup
 
-from share_text.markdown import render_markdown
-from share_text.models import ContentItem, ImageAsset
+from simple_share.markdown import render_markdown
+from simple_share.models import ContentItem, ImageAsset
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = PACKAGE_DIR / "templates"

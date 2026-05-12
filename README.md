@@ -21,24 +21,30 @@ Tiny reusable script to publish text, Markdown, screenshots, or a browsable cont
 ## Usage
 
 ```bash
-chmod +x ./simple-share.sh
+chmod +x ./bin/simple-share ./install.sh
 ```
 
-`simple-share.sh` is a thin wrapper around `simple-share.py`.
-If a repo-local `.venv` exists, both entrypoints prefer it automatically.
+`bin/simple-share` is the user-facing entrypoint.
+If a repo-local `.venv` exists, it is picked automatically.
+
+Install a convenient symlink into `~/.bin`:
+
+```bash
+./install.sh
+```
 
 Start directory mode:
 
 ```bash
-./simple-share.sh
+./bin/simple-share
 ```
 
-By default this serves the repo-local `./content` directory as an index page.
+By default this serves `$PWD/.` as an index page.
 
 Start local-only mode for faster layout work:
 
 ```bash
-./simple-share.sh --local-only
+./bin/simple-share --local-only
 ```
 
 This keeps the site on `http://127.0.0.1:$PORT` and does not start `cloudflared`.
@@ -46,67 +52,73 @@ This keeps the site on `http://127.0.0.1:$PORT` and does not start `cloudflared`
 Pass plain text directly:
 
 ```bash
-./simple-share.sh "hello from special network"
+./bin/simple-share "hello from special network"
 ```
 
 Pass Markdown directly:
 
 ```bash
-./simple-share.sh -m "# Weekly Report"
+./bin/simple-share -m "# Weekly Report"
 ```
 
 Pass a file:
 
 ```bash
-./simple-share.sh -f ./notes.txt
+./bin/simple-share -f ./notes.txt
 ```
 
 Pass a Markdown file:
 
 ```bash
-./simple-share.sh -m -f ./report.md
+./bin/simple-share -m -f ./report.md
 ```
 
 Pass a screenshot:
 
 ```bash
-./simple-share.sh -f ~/Desktop/screenshot.png
+./bin/simple-share -f ~/Desktop/screenshot.png
 ```
 
 Pass multiple screenshots:
 
 ```bash
-./simple-share.sh -f ~/Desktop/step-1.png -f ~/Desktop/step-2.png
+./bin/simple-share -f ~/Desktop/step-1.png -f ~/Desktop/step-2.png
 ```
 
 Pass stdin:
 
 ```bash
-pbpaste | ./simple-share.sh
+pbpaste | ./bin/simple-share
 ```
 
 Pass Markdown via stdin:
 
 ```bash
-cat ./report.md | ./simple-share.sh -m
+cat ./report.md | ./bin/simple-share -m
 ```
 
 Custom port:
 
 ```bash
-PORT=8899 ./simple-share.sh "temporary text"
+PORT=8899 ./bin/simple-share "temporary text"
 ```
 
 Custom page title:
 
 ```bash
-TITLE="one-time share" ./simple-share.sh "temporary text"
+TITLE="one-time share" ./bin/simple-share "temporary text"
 ```
 
 Custom content directory:
 
 ```bash
-./simple-share.sh --content-dir ~/shared-drop
+./bin/simple-share --content-dir ~/shared-drop
+```
+
+Installed usage from any directory:
+
+```bash
+simple-share --local-only
 ```
 
 ## Markdown mode
@@ -130,12 +142,15 @@ If you pass image files (`png`, `jpg`, `jpeg`, `gif`, `webp`, etc.) with `-f`, t
 
 ## Directory mode
 
-If you run `./simple-share.sh` with no arguments, the tool serves an index page from `./content`.
+If you run `./bin/simple-share` with no arguments, the tool serves an index page from `$PWD/.`.
 
-- drop `.md`, screenshots, and text files into `./content`
+- run it inside the folder you want to share
+- or point it elsewhere with `--content-dir`
 - open the shared root URL to see the index
 - click any entry to open its own page
-- nested folders are supported and show up in the index
+- nested folders are supported and browsable
+- symlinked directories and files are supported
+- browser refresh re-reads the source tree, so new entries show up without restart
 - `content/` is ignored by git by default except for `.gitkeep`
 
 ## Local-only mode
@@ -150,20 +165,21 @@ If you add `--local-only`, the tool serves the same content on localhost without
 
 - the script keeps running while the page is available
 - stop it with `Ctrl+C`
-- data is served from a temporary directory and removed on exit
+- ad-hoc text/image mode is served from a temporary directory and removed on exit
+- directory mode is rendered live from the chosen source tree on each request
 - Markdown rendering is intentionally lightweight, not a full Markdown engine
 
 ## Layout
 
-- `simple-share.sh`: shell wrapper
-- `simple-share.py`: Python entrypoint
-- `share_text/cli.py`: argument parsing
-- `share_text/content.py`: input loading and image staging
-- `share_text/site.py`: content-directory site generation
-- `share_text/markdown.py`: lightweight Markdown rendering
-- `share_text/page.py`: template rendering and page composition
-- `share_text/templates/`: HTML templates
-- `share_text/static/`: CSS and browser-side JS
+- `bin/simple-share`: shell entrypoint
+- `install.sh`: symlink installer for `~/.bin/simple-share`
+- `simple_share/cli.py`: argument parsing
+- `simple_share/content.py`: input loading and image staging
+- `simple_share/site.py`: content-directory site generation
+- `simple_share/markdown.py`: lightweight Markdown rendering
+- `simple_share/page.py`: template rendering and page composition
+- `simple_share/templates/`: HTML templates
+- `simple_share/static/`: CSS and browser-side JS
 - `requirements.txt`: Python template dependency
-- `share_text/app.py`: local server and `cloudflared` lifecycle
-- `share_text/main.py`: orchestration
+- `simple_share/app.py`: local server and `cloudflared` lifecycle
+- `simple_share/main.py`: orchestration
