@@ -2,4 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-exec python3 "$SCRIPT_DIR/share-text.py" "$@"
+PYTHON_BIN="python3"
+
+if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]]; then
+  PYTHON_BIN="$SCRIPT_DIR/.venv/bin/python"
+fi
+
+exec "$PYTHON_BIN" "$SCRIPT_DIR/share-text.py" "$@"

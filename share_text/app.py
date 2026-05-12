@@ -24,6 +24,11 @@ class App:
             text=True,
         )
         time.sleep(1)
+        if self.server.poll() is not None:
+            raise SystemExit(
+                f"Failed to start local server on port {self.port}. "
+                "Set PORT to a free port and try again."
+            )
 
     def start_tunnel(self) -> int:
         print(f"Serving on http://127.0.0.1:{self.port}")
@@ -33,3 +38,11 @@ class App:
             text=True,
         )
         return self.tunnel.wait()
+
+    def serve_local(self) -> int:
+        print(f"Serving locally on http://127.0.0.1:{self.port}")
+        print("Local-only mode; cloudflared is disabled.")
+        print("Press Ctrl+C to stop.\n")
+        if self.server is None:
+            raise RuntimeError("Server was not started")
+        return self.server.wait()

@@ -1,6 +1,6 @@
 # cloud-bz-gz
 
-Tiny reusable script to publish text, Markdown, screenshots, or a browsable content directory as a temporary web page through `cloudflared`.
+Tiny reusable script to publish text, Markdown, screenshots, or a browsable content directory through either `localhost` or `cloudflared`.
 
 ## What it does
 
@@ -10,12 +10,13 @@ Tiny reusable script to publish text, Markdown, screenshots, or a browsable cont
 - can serve a small index site from a local content directory
 - can copy rendered rich text as `text/html` for pasting into Confluence
 - serves the page locally with `python3`
-- exposes it with a temporary `trycloudflare.com` URL
+- can expose it with a temporary `trycloudflare.com` URL
 
 ## Requirements
 
-- `cloudflared`
+- `cloudflared` for external sharing
 - `python3`
+- `Jinja2` Python package: `python3 -m pip install -r requirements.txt`
 
 ## Usage
 
@@ -24,6 +25,7 @@ chmod +x ./share-text.sh
 ```
 
 `share-text.sh` is a thin wrapper around `share-text.py`.
+If a repo-local `.venv` exists, both entrypoints prefer it automatically.
 
 Start directory mode:
 
@@ -32,6 +34,14 @@ Start directory mode:
 ```
 
 By default this serves the repo-local `./content` directory as an index page.
+
+Start local-only mode for faster layout work:
+
+```bash
+./share-text.sh --local-only
+```
+
+This keeps the site on `http://127.0.0.1:$PORT` and does not start `cloudflared`.
 
 Pass plain text directly:
 
@@ -128,6 +138,14 @@ If you run `./share-text.sh` with no arguments, the tool serves an index page fr
 - nested folders are supported and show up in the index
 - `content/` is ignored by git by default except for `.gitkeep`
 
+## Local-only mode
+
+If you add `--local-only`, the tool serves the same content on localhost without starting a tunnel.
+
+- useful for faster HTML/CSS iteration
+- works with plain text, markdown, screenshots, and directory mode
+- `cloudflared` is not required in this mode
+
 ## Notes
 
 - the script keeps running while the page is available
@@ -143,6 +161,9 @@ If you run `./share-text.sh` with no arguments, the tool serves an index page fr
 - `share_text/content.py`: input loading and image staging
 - `share_text/site.py`: content-directory site generation
 - `share_text/markdown.py`: lightweight Markdown rendering
-- `share_text/page.py`: HTML, CSS, and client-side actions
+- `share_text/page.py`: template rendering and page composition
+- `share_text/templates/`: HTML templates
+- `share_text/static/`: CSS and browser-side JS
+- `requirements.txt`: Python template dependency
 - `share_text/app.py`: local server and `cloudflared` lifecycle
 - `share_text/main.py`: orchestration

@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from share_text.app import App
+from share_text.assets import publish_static_assets
 from share_text.cli import parse_args
 from share_text.content import (
     build_payload,
@@ -20,12 +21,14 @@ from share_text.site import build_content_site
 
 def main() -> int:
     args = parse_args()
-    require_command("cloudflared")
     require_command("python3")
+    if not args.local_only:
+        require_command("cloudflared")
     port = os.environ.get("PORT", "8787")
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         output_dir = Path(tmp_dir)
+        publish_static_assets(output_dir)
         if should_use_content_dir_mode(args.file, args.text):
             content_dir = resolve_content_dir(args.content_dir)
             ensure_content_dir(content_dir)
@@ -42,4 +45,6 @@ def main() -> int:
         signal.signal(signal.SIGINT, app.cleanup)
         signal.signal(signal.SIGTERM, app.cleanup)
         app.start_server()
+        if args.local_only:
+            return app.serve_local()
         return app.start_tunnel()
